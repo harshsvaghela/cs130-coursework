@@ -1,24 +1,13 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/netlify-db";
+import * as schema from "../../db/schema";
 
-const databaseUrl = process.env.DATABASE_URL;
+let db: ReturnType<typeof createDatabase> | undefined;
 
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required");
+function createDatabase() {
+  return drizzle({ schema });
 }
 
-const globalForDb = globalThis as typeof globalThis & {
-  __arenaNextJsPostgresqlPool?: Pool;
-};
-
-export const pool =
-  globalForDb.__arenaNextJsPostgresqlPool ??
-  new Pool({
-    connectionString: databaseUrl,
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__arenaNextJsPostgresqlPool = pool;
+// Route modules are imported during builds. Connect only when a request needs it.
+export function getDb() {
+  return (db ??= createDatabase());
 }
-
-export const db = drizzle(pool);
